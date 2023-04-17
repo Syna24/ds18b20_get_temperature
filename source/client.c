@@ -164,9 +164,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-
 	time(&pretime);
-
 
 	while(!pro_stop)
 	{

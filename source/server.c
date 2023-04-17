@@ -42,28 +42,28 @@ void messg_help()
 
 int main(int argc, char *argv[])
 {
-	int sockfd=-1;
-	int rv=-1;
-	int val=1;
-	int clifd=-1;
-	struct sockaddr_in servaddr;
-	struct sockaddr_in cliaddr;
-	int port=-1;
-	char buf[1024];
-	socklen_t len=sizeof(cliaddr);
-	struct epoll_event ev;
-	struct epoll_event rev[1024];
-	int epfd=-1;
-	int fds=-1;
-	int rctl=-1;
-	int newfd=-1;
-	char *str=NULL;
-	char *s[3]={0};
-	data_t dt={0};
-	sqlite_t sq={0};
-	char table_name[128];
-	int opt=0;
-	int daemon_run=0;
+	int 				sockfd=-1;
+	int 				rv=-1;
+	int 				val=1;
+	int 				clifd=-1;
+	struct sockaddr_in 	servaddr;
+	struct sockaddr_in 	cliaddr;
+	int 				port=-1;
+	char 				buf[1024];
+	socklen_t 			len=sizeof(cliaddr);
+	struct epoll_event 	ev;
+	struct epoll_event 	rev[1024];
+	int 				epfd=-1;
+	int 				fds=-1;
+	int 				rctl=-1;
+	int 				newfd=-1;
+	char 			   *str=NULL;
+	char 			   *s[3]={0};
+	data_t 				dt={0};
+	sqlite_t 			sq={0};
+	char 				table_name[128];
+	int 				opt=0;
+	int 				daemon_run=0;
 
 
 	if (argc<2)
