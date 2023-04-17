@@ -29,10 +29,10 @@ void proStop()
 
 struct option long_options[]=
 {
-	{"ip",required_argument,NULL,'i'},
+	{"host",required_argument,NULL,'H'},
 	{"port",required_argument,NULL,'p'},
-	{"time",required_argument,NULL,'t'},
-	{"table_name",required_argument,NULL,'n'},
+	{"interval",required_argument,NULL,'i'},
+	{"sn",required_argument,NULL,'s'},
 	{"daemon",no_argument,NULL,'d'},
 	{"help",no_argument,NULL,'h'},
 	{NULL,0,NULL,0}
@@ -40,9 +40,9 @@ struct option long_options[]=
 
 void messg_help()
 {
-	printf("-i(--ip):specify the server IP address\n");
+	printf("-H(--host):specify the server host address\n");
 	printf("-p(--port):specify the server port\n");
-	printf("-t(--time):specify the sample time(s)\n");
+	printf("-i(--interval):specify the sample interval(s)\n");
 	printf("-s(--sn):specify the deviece sn\n");
 	printf("-d(--daemon):set process to daemon\n");
 	printf("-h(--help):printf the help messege\n");
@@ -51,25 +51,24 @@ void messg_help()
 
 int main(int argc, char *argv[])
 {
-	int opt=0;
-	socket_t sock={0};
-	sqlite_t sq={0};
-	zlog_category_t *zc=NULL;
-	int sample_time=-1;
-	int daemon_run=0;
-	char out_way[64];
-	time_t pretime={0};
-	time_t nowtime={0};
-	int reconnect=-1;
-	data_t dt={0};
-	data_t sql_dt={0};
-	char *sn=NULL;
-	int flag=-1;	
+	int 		opt=0;
+	socket_t 	sock={0};
+	sqlite_t	sq={0};
+	int 		sample_interval=-1;
+	int 		daemon_run=0;
+	char 		out_way[64];
+	time_t		pretime={0};
+	time_t		nowtime={0};
+	int			reconnect=-1;
+	data_t 		dt={0};
+	data_t 		sql_dt={0};
+	char 	   *sn=NULL;
+	int 		send_flag=-1;	
 	
 
 	if(argc<4)
 	{
-		printf("Please add %s [server_ip] [server_port] [sn] [sample_time]!\n\n",argv[0]);
+		printf("Please add %s [server_ip] [server_port] [sn] [sample_interval]!\n\n",argv[0]);
 		
 		messg_help();
 		
@@ -77,18 +76,18 @@ int main(int argc, char *argv[])
 	}
 	
 
-	while((opt=getopt_long(argc,argv,"i:p:t:s:dh",long_options,NULL)) != -1)
+	while((opt=getopt_long(argc,argv,"H:p:i:s:dh",long_options,NULL)) != -1)
 	{
 		switch(opt)
 		{
-			case 'i':
+			case 'H':
 				strncpy(sock.ipaddr,optarg,sizeof(sock.ipaddr));
 				break;
 			case 'p':
 				sock.port=atoi(optarg);
 				break;
-			case 't':
-				sample_time=atoi(optarg);
+			case 'i':
+				sample_interval=atoi(optarg);
 				break;
 			case 's':
 				sn=optarg;
@@ -107,7 +106,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	if(sock.ipaddr[0] == 0 || sock.port==0 || sample_time==0 || sn == NULL)
+	if(sock.ipaddr[0] == 0 || sock.port==0 || sample_interval==0 || sn == NULL)
 	{
 		printf("Please enter the correct format!\n\n");
 		
@@ -124,9 +123,9 @@ int main(int argc, char *argv[])
 
 	memset(out_way,0,sizeof(out_way));
 
-	if(daemon_run==1)
+	if(daemon_run == 1)
 	{
-		if((zc=zlog_get_category("my_zlog"))==NULL)
+		if((zc=zlog_get_category("my_zlog")) == NULL)
 		{
 			printf("zlog get category fail:%s\n",strerror(errno));
 			return -1;
@@ -139,7 +138,7 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		if((zc=zlog_get_category("use_stdout"))==NULL)
+		if((zc=zlog_get_category("use_stdout")) == NULL)
 		{
 			printf("zlog get category fail:%s\n",strerror(errno));
 			return -1;
@@ -183,7 +182,7 @@ int main(int argc, char *argv[])
             close(sock.sockfd);
             time(&nowtime);
 
-            if(nowtime-pretime<sample_time)
+            if(nowtime-pretime<sample_interval)
             {
                 reconnect=1;
             }
@@ -205,14 +204,14 @@ int main(int argc, char *argv[])
 				zlog_error(zc,"client[%d] get data fail\n",sock.sockfd);
 				close(sock.sockfd);
 				sqlite3_close(sq.db);
-				return -1;
+				break;
 			}
 
 			strncpy(dt.id,sn,sizeof(dt.id));
             time(&pretime);
-			flag=1;
+			send_flag=1;
 			
-            while((nowtime-pretime)<sample_time && !pro_stop)
+            while((nowtime-pretime)<sample_interval && !pro_stop)
             {
                 if(socket_check(&sock)<0)	//socket is disconnecting
                 {
@@ -235,7 +234,7 @@ int main(int argc, char *argv[])
                     break;
                 }
 
-				if(flag==1)
+				if(send_flag == 1)
 				{
 
                 	if (socket_write(&sock,&dt)<0)
@@ -248,27 +247,30 @@ int main(int argc, char *argv[])
                     	zlog_error(zc,"send data fail\n");
 						close(sock.sockfd);
 						sqlite3_close(sq.db);
-                    	return -1;
+						time(&nowtime);
+                    	continue;
                 	}
 
                 	zlog_info(zc,"client[%d] send sample_data(%s|%.2f|%s) to server success!\n",
                                	 sock.sockfd,dt.id,dt.temperature,dt.time);
 				}
 
-				flag=0;
+				send_flag=0;
 
                 while(sqlite_getRows(&sq)>0 && !pro_stop)
                 {
+					time(&nowtime);
+
+					if(nowtime-pretime >= sample_interval)
+					{
+						break;
+					}
+
                     if(get_sqlData(&sq,&sql_dt)<0)
 					{
 						printf("get sqlite data fail\n");
 						return -1;
 					}
-
-                    if(socket_check(&sock)<0)
-                    {
-                        break;
-                    }
 
                     if(socket_write(&sock,&sql_dt)<0)
                     {
@@ -280,7 +282,7 @@ int main(int argc, char *argv[])
                         zlog_error(zc,"(sql)write to socket[%d] fail\n",sock.sockfd);
 						close(sock.sockfd);
 						sqlite3_close(sq.db);
-                        return -1;
+                        break;
                     }
 
                     zlog_info(zc,"client[%d] send sqlite_data(%s|%.2f|%s) to server success!\n",
@@ -299,6 +301,7 @@ int main(int argc, char *argv[])
                 }//end of while(sqlite_getRows(sq)>0....)
 
                 time(&nowtime);
+
             }//end of while((nowtime-pretime)<sample_time...)
 
 		}//end of while(reconnect==0...)

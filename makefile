@@ -25,7 +25,7 @@ server:mylib
 .PHONY :install
 install:
 	mkdir -p install
-	cd ./source/src/ && make
+	@cd ./source/src/ && make
 	mv ./source/src/libzlog.a ./source/src/libzlog.so ./source/src/libzlog.so.1 ./source/src/libzlog.so.1.2 ./install
 
 clear:

@@ -116,7 +116,7 @@ int sqlite_del(sqlite_t *sqt,data_t *dt)
 	char sql[1024];
 	char *errmsg=NULL;
 
-	sprintf(sql,"delete from %s where id='%s' and temperature=%.2f and time='%s';",
+	sprintf(sql,"delete from %s where sn='%s' and temperature=%.2f and time='%s';",
 			sqt->table_name,dt->id,dt->temperature,dt->time);
 	
 	sqlite3_busy_timeout(sqt->db,1000);

@@ -6,7 +6,7 @@
 extern  zlog_category_t *zc;
 
 typedef struct data_s{
-	char id[128];
+	char id[256];
 	float temperature;
 	char time[256];
 }data_t;
